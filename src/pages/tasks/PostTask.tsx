@@ -1,3 +1,4 @@
+
 import {
   Card,
   CardContent,
@@ -31,7 +32,7 @@ import { useAuth } from "@/context/AuthContext";
 import { ImageIcon } from "@radix-ui/react-icons";
 import { Progress } from "@/components/ui/progress";
 import { useUploadThing } from "@/utils/uploadthing";
-import { FileRejection } from "react-dropzone";
+import type { FileRejection } from "react-dropzone";
 
 const formSchema = z.object({
   title: z.string().min(2, {
@@ -54,7 +55,7 @@ const formSchema = z.object({
 const PostTask = () => {
   const { categories, isLoading: isLoadingCategories } = useCategories();
   const { toast } = useToast();
-  const router = useNavigate();
+  const navigate = useNavigate();
   const { createTask } = useTasks();
   const { user } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -101,9 +102,9 @@ const PostTask = () => {
         description: "You must be logged in to post a task",
         variant: "destructive"
       });
-      router.push("/auth/sign-in");
+      navigate("/auth/sign-in");
     }
-  }, [user, router, toast]);
+  }, [user, navigate, toast]);
 
   const handleSubmit = async (data: z.infer<typeof formSchema>) => {
     try {
@@ -115,18 +116,25 @@ const PostTask = () => {
           description: "You must be logged in to post a task",
           variant: "destructive"
         });
-        router.push("/auth/sign-in");
+        navigate("/auth/sign-in");
         return;
       }
 
+      // Make sure to pass all required fields from the form
       await createTask({
-        ...data,
+        title: data.title,
+        description: data.description,
+        budget: data.budget,
+        category_id: data.category_id,
         owner_id: user.id,
+        location: data.location,
+        is_remote: data.is_remote,
+        is_urgent: data.is_urgent,
         images: uploadedImages
       });
 
       reset();
-      router.push("/");
+      navigate("/");
     } catch (error) {
       console.error("Error creating task:", error);
     } finally {
