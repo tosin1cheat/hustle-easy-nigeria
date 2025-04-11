@@ -29,7 +29,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
 import { useTasks } from "@/hooks/useTasks";
 import { useAuth } from "@/context/AuthContext";
-import { ImageIcon } from "@radix-ui/react-icons";
+import { ImageIcon } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { useUploadThing } from "@/utils/uploadthing";
 import type { FileRejection } from "react-dropzone";
