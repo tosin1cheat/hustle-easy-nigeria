@@ -12,6 +12,7 @@ import SignUp from "./pages/auth/SignUp";
 import Verification from "./pages/auth/Verification";
 import PostTask from "./pages/tasks/PostTask";
 import ProfilePage from "./pages/user/Profile";
+import Dashboard from "./pages/Dashboard";
 import { isSupabaseConfigured } from "./lib/supabase";
 import { toast } from "sonner";
 import { useEffect } from "react";
@@ -47,6 +48,7 @@ const App = () => {
               <Route path="/auth/sign-in" element={<SignIn />} />
               <Route path="/auth/sign-up" element={<SignUp />} />
               <Route path="/auth/verification" element={<Verification />} />
+              <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/post-task" element={<PostTask />} />
               <Route path="/profile" element={<ProfilePage />} />
               {/* Additional routes will be added here as new pages are created */}
