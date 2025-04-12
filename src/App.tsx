@@ -11,7 +11,11 @@ import SignIn from "./pages/auth/SignIn";
 import SignUp from "./pages/auth/SignUp";
 import Verification from "./pages/auth/Verification";
 import PostTask from "./pages/tasks/PostTask";
+import MyTasks from "./pages/tasks/MyTasks";
+import TaskDetail from "./pages/tasks/TaskDetail";
+import CompletedTasks from "./pages/tasks/CompletedTasks";
 import ProfilePage from "./pages/user/Profile";
+import Wallet from "./pages/user/Wallet";
 import Dashboard from "./pages/Dashboard";
 import { isSupabaseConfigured } from "./lib/supabase";
 import { toast } from "sonner";
@@ -50,8 +54,11 @@ const App = () => {
               <Route path="/auth/verification" element={<Verification />} />
               <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/post-task" element={<PostTask />} />
+              <Route path="/my-tasks" element={<MyTasks />} />
+              <Route path="/task/:id" element={<TaskDetail />} />
+              <Route path="/completed-tasks" element={<CompletedTasks />} />
               <Route path="/profile" element={<ProfilePage />} />
-              {/* Additional routes will be added here as new pages are created */}
+              <Route path="/wallet" element={<Wallet />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </BrowserRouter>

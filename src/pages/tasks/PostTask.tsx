@@ -29,9 +29,10 @@ import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
 import { useTasks } from "@/hooks/useTasks";
 import { useAuth } from "@/context/AuthContext";
-import { ImageIcon } from "lucide-react";
+import { FileImage, ImageIcon, Loader2 } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { useUploadThing } from "@/utils/uploadthing";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import type { FileRejection } from "react-dropzone";
 
 const formSchema = z.object({
@@ -42,7 +43,7 @@ const formSchema = z.object({
     message: "Description must be at least 10 characters.",
   }),
   budget: z.coerce.number().min(1, {
-    message: "Budget must be at least $1.",
+    message: "Budget must be at least ₦1.",
   }),
   category_id: z.string().min(1, {
     message: "Please select a category.",
@@ -50,6 +51,7 @@ const formSchema = z.object({
   location: z.string().optional(),
   is_remote: z.boolean().default(false),
   is_urgent: z.boolean().default(false),
+  pricing_type: z.enum(['fixed', 'bidding']).default('fixed'),
 });
 
 const PostTask = () => {
@@ -60,6 +62,7 @@ const PostTask = () => {
   const { user } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [uploadedImages, setUploadedImages] = useState<string[]>([]);
+  const [pricingType, setPricingType] = useState<'fixed' | 'bidding'>('fixed');
   const { startUpload, isUploading, permittedFileInfo } = useUploadThing("imageUploader", {
     onClientUploadComplete: (res) => {
       // Do something with the response
@@ -92,8 +95,14 @@ const PostTask = () => {
       location: "",
       is_remote: false,
       is_urgent: false,
+      pricing_type: 'fixed',
     },
   });
+
+  // Update form when pricing type changes
+  useEffect(() => {
+    form.setValue('pricing_type', pricingType);
+  }, [pricingType, form]);
 
   useEffect(() => {
     if (!user) {
@@ -130,11 +139,12 @@ const PostTask = () => {
         location: data.location,
         is_remote: data.is_remote,
         is_urgent: data.is_urgent,
-        images: uploadedImages
+        images: uploadedImages,
+        pricing_type: data.pricing_type
       });
 
       reset();
-      navigate("/");
+      navigate("/my-tasks");
     } catch (error) {
       console.error("Error creating task:", error);
     } finally {
@@ -145,6 +155,7 @@ const PostTask = () => {
   const reset = () => {
     form.reset();
     setUploadedImages([]);
+    setPricingType('fixed');
   };
 
   const handleFileDrop = async (acceptedFiles: File[], fileRejections: FileRejection[]) => {
@@ -158,6 +169,19 @@ const PostTask = () => {
     }
 
     startUpload(acceptedFiles);
+  };
+  
+  // Preview image before uploading
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length) {
+      handleFileDrop(files, []);
+    }
+  };
+
+  // Remove an uploaded image
+  const removeImage = (indexToRemove: number) => {
+    setUploadedImages(uploadedImages.filter((_, index) => index !== indexToRemove));
   };
 
   return (
@@ -194,7 +218,7 @@ const PostTask = () => {
                     <FormControl>
                       <Textarea
                         placeholder="Detailed task description"
-                        className="resize-none"
+                        className="resize-none min-h-32"
                         {...field}
                       />
                     </FormControl>
@@ -202,16 +226,44 @@ const PostTask = () => {
                   </FormItem>
                 )}
               />
+              
+              {/* Pricing Type Toggle */}
+              <div className="space-y-2">
+                <Label htmlFor="pricing-type">Pricing Type</Label>
+                <ToggleGroup 
+                  type="single" 
+                  value={pricingType} 
+                  onValueChange={(value) => {
+                    if (value) setPricingType(value as 'fixed' | 'bidding');
+                  }}
+                  className="justify-start"
+                >
+                  <ToggleGroupItem value="fixed" aria-label="Fixed Price">
+                    Fixed Price
+                  </ToggleGroupItem>
+                  <ToggleGroupItem value="bidding" aria-label="Allow Bidding">
+                    Allow Bidding
+                  </ToggleGroupItem>
+                </ToggleGroup>
+                <p className="text-sm text-muted-foreground">
+                  {pricingType === 'fixed' 
+                    ? "Set a fixed price for your task" 
+                    : "Let freelancers bid on your task"}
+                </p>
+              </div>
+              
               <FormField
                 control={form.control}
                 name="budget"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Budget</FormLabel>
+                    <FormLabel>
+                      {pricingType === 'fixed' ? 'Budget' : 'Starting Budget'}
+                    </FormLabel>
                     <FormControl>
                       <Input
                         type="number"
-                        placeholder="Enter your budget"
+                        placeholder={pricingType === 'fixed' ? "Enter your budget" : "Enter starting budget"}
                         {...field}
                       />
                     </FormControl>
@@ -304,56 +356,80 @@ const PostTask = () => {
                   )}
                 />
               </div>
-              <div>
+              <div className="space-y-2">
                 <Label htmlFor="image-upload">Upload Images (Optional)</Label>
-                <input
-                  type="file"
-                  id="image-upload"
-                  multiple
-                  accept={permittedFileInfo?.accept?.join(",")}
-                  onChange={(e) => {
-                    const files = Array.from(e.target.files || []);
-                    handleFileDrop(files, []);
-                  }}
-                  className="hidden"
-                />
-                <Button
-                  variant="outline"
-                  disabled={isUploading}
-                  asChild
-                >
-                  <Label htmlFor="image-upload" className="cursor-pointer">
-                    {isUploading ? (
-                      <>
-                        Uploading...
-                        <Progress value={50} className="max-w-xs" />
-                      </>
-                    ) : (
-                      <>
-                        <ImageIcon className="mr-2 h-4 w-4" />
-                        <span>Select Images</span>
-                      </>
-                    )}
-                  </Label>
-                </Button>
-                {uploadedImages.length > 0 && (
-                  <div className="mt-2">
-                    <p>Uploaded Images:</p>
-                    <div className="flex space-x-2">
+                <div className="grid grid-cols-1 gap-4">
+                  <div className="flex flex-col items-center justify-center border-2 border-dashed border-gray-300 rounded-lg p-6 hover:border-hustlr-green transition-colors">
+                    <FileImage className="h-10 w-10 text-gray-400 mb-2" />
+                    <p className="text-sm text-gray-500 mb-2">Drag and drop or click to select files</p>
+                    <p className="text-xs text-gray-400 mb-4">JPG, PNG, WEBP, GIF up to 4MB</p>
+                    <input
+                      type="file"
+                      id="image-upload"
+                      multiple
+                      accept={permittedFileInfo?.accept?.join(",")}
+                      onChange={handleFileChange}
+                      className="hidden"
+                    />
+                    <Button
+                      variant="outline"
+                      disabled={isUploading}
+                      asChild
+                    >
+                      <Label htmlFor="image-upload" className="cursor-pointer">
+                        {isUploading ? (
+                          <div className="flex items-center">
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            <span>Uploading...</span>
+                          </div>
+                        ) : (
+                          <>
+                            <ImageIcon className="mr-2 h-4 w-4" />
+                            <span>Select Images</span>
+                          </>
+                        )}
+                      </Label>
+                    </Button>
+                  </div>
+                  
+                  {isUploading && (
+                    <Progress value={65} className="w-full" />
+                  )}
+                  
+                  {uploadedImages.length > 0 && (
+                    <div className="grid grid-cols-3 gap-2">
                       {uploadedImages.map((image, index) => (
-                        <img
-                          key={index}
-                          src={image}
-                          alt={`Uploaded ${index + 1}`}
-                          className="h-20 w-20 rounded-md object-cover"
-                        />
+                        <div key={index} className="relative group">
+                          <img
+                            src={image}
+                            alt={`Uploaded ${index + 1}`}
+                            className="h-20 w-full rounded-md object-cover"
+                          />
+                          <div className="absolute inset-0 bg-black bg-opacity-50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center rounded-md">
+                            <Button 
+                              variant="destructive" 
+                              size="sm"
+                              onClick={() => removeImage(index)}
+                              className="w-8 h-8 p-0"
+                            >
+                              X
+                            </Button>
+                          </div>
+                        </div>
                       ))}
                     </div>
-                  </div>
-                )}
+                  )}
+                </div>
               </div>
-              <Button type="submit" disabled={isSubmitting}>
-                {isSubmitting ? "Submitting..." : "Post Task"}
+              <Button type="submit" disabled={isSubmitting} className="w-full">
+                {isSubmitting ? (
+                  <div className="flex items-center justify-center">
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    <span>Submitting...</span>
+                  </div>
+                ) : (
+                  "Post Task"
+                )}
               </Button>
             </form>
           </Form>

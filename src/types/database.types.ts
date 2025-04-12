@@ -41,6 +41,8 @@ export type Task = {
   is_remote: boolean;
   is_urgent: boolean;
   images?: string[];
+  pricing_type?: 'fixed' | 'bidding';
+  completed_at?: string;
 };
 
 export type Bid = {
