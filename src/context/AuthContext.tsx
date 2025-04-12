@@ -3,6 +3,7 @@ import { createContext, useState, useEffect, useContext, ReactNode } from 'react
 import { supabase } from '@/lib/supabase';
 import { User } from '@/types/database.types';
 import { useToast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 
 type AuthContextType = {
   user: User | null;
@@ -20,32 +21,39 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const { toast } = useToast();
+  const { toast: uiToast } = useToast();
 
   useEffect(() => {
     // Get initial session and set up listener for auth changes
     const fetchSession = async () => {
-      const { data: { session }, error } = await supabase.auth.getSession();
-      
-      if (error) {
-        console.error('Error fetching session:', error);
-        return;
-      }
+      try {
+        const { data: { session }, error } = await supabase.auth.getSession();
+        
+        if (error) {
+          console.error('Error fetching session:', error);
+          return;
+        }
 
-      if (session) {
-        setSession(session);
-        await fetchUserProfile(session.user.id);
+        if (session) {
+          setSession(session);
+          await fetchUserProfile(session.user.id);
+        }
+      } catch (error) {
+        console.error('Error in fetchSession:', error);
+      } finally {
+        setLoading(false);
       }
-      
-      setLoading(false);
     };
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, newSession) => {
+      (event, newSession) => {
         setSession(newSession);
         
+        // Defer profile fetching to prevent deadlocks
         if (event === 'SIGNED_IN' && newSession) {
-          await fetchUserProfile(newSession.user.id);
+          setTimeout(() => {
+            fetchUserProfile(newSession.user.id);
+          }, 0);
         } else if (event === 'SIGNED_OUT') {
           setUser(null);
         }
@@ -110,13 +118,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           throw profileError;
         }
         
-        toast({
+        uiToast({
           title: "Account created successfully",
           description: "Please verify your email to continue",
         });
       }
     } catch (error: any) {
-      toast({
+      uiToast({
         title: "Registration failed",
         description: error.message,
         variant: "destructive",
@@ -140,12 +148,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         await fetchUserProfile(data.user.id);
       }
 
-      toast({
+      uiToast({
         title: "Welcome back",
         description: "Successfully signed in",
       });
     } catch (error: any) {
-      toast({
+      uiToast({
         title: "Sign in failed",
         description: error.message,
         variant: "destructive",
@@ -163,12 +171,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }
       
       setUser(null);
-      toast({
-        title: "Signed out",
-        description: "You have been signed out successfully",
-      });
+      toast.success("Signed out successfully");
     } catch (error: any) {
-      toast({
+      uiToast({
         title: "Sign out failed",
         description: error.message,
         variant: "destructive",
@@ -178,7 +183,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const updateProfile = async (userData: Partial<User>) => {
     if (!user || !session) {
-      toast({
+      uiToast({
         title: "Authentication error",
         description: "You must be logged in to update your profile",
         variant: "destructive",
@@ -204,12 +209,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       // Refresh user data
       await fetchUserProfile(user.id);
       
-      toast({
+      uiToast({
         title: "Profile updated",
         description: "Your profile has been updated successfully",
       });
     } catch (error: any) {
-      toast({
+      uiToast({
         title: "Update failed",
         description: error.message,
         variant: "destructive",

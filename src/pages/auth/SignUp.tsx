@@ -18,6 +18,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Loader2 } from 'lucide-react';
+import { toast } from 'sonner';
 
 const formSchema = z.object({
   firstName: z.string()
@@ -62,14 +63,17 @@ const SignUp = () => {
   const onSubmit = async (data: FormData) => {
     try {
       setIsLoading(true);
+      toast.loading('Creating your account...', { id: 'signup' });
       await signUp(data.email, data.password, {
         first_name: data.firstName,
         last_name: data.lastName,
         phone_number: data.phoneNumber,
       });
+      toast.success('Account created successfully!', { id: 'signup' });
       navigate('/auth/verification');
-    } catch (error) {
+    } catch (error: any) {
       console.error('Sign up error:', error);
+      toast.error(error.message || 'Failed to create account', { id: 'signup' });
     } finally {
       setIsLoading(false);
     }
@@ -200,12 +204,15 @@ const SignUp = () => {
             </form>
           </Form>
         </CardContent>
-        <CardFooter className="flex justify-center">
+        <CardFooter className="flex flex-col gap-2">
           <p className="text-sm text-gray-600">
             Already have an account?{' '}
             <Link to="/auth/sign-in" className="text-hustlr-green font-semibold hover:underline">
               Sign in
             </Link>
+          </p>
+          <p className="text-xs text-gray-500 text-center mt-2">
+            Note: You'll need to verify your email address after signing up.
           </p>
         </CardFooter>
       </Card>

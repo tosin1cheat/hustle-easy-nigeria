@@ -3,8 +3,8 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { AuthProvider } from "./context/AuthContext";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { AuthProvider, useAuth } from "./context/AuthContext";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import SignIn from "./pages/auth/SignIn";
@@ -22,6 +22,25 @@ import { toast } from "sonner";
 import { useEffect } from "react";
 
 const queryClient = new QueryClient();
+
+// Protected route component
+const ProtectedRoute = ({ children }: { children: JSX.Element }) => {
+  const { user, loading } = useAuth();
+  
+  // Show nothing while checking authentication
+  if (loading) {
+    return <div className="flex items-center justify-center min-h-screen">
+      <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-hustlr-green"></div>
+    </div>;
+  }
+  
+  // Redirect to sign in if not authenticated
+  if (!user) {
+    return <Navigate to="/auth/sign-in" replace />;
+  }
+  
+  return children;
+};
 
 const App = () => {
   // Check if Supabase is configured and show a toast notification if not
@@ -52,13 +71,44 @@ const App = () => {
               <Route path="/auth/sign-in" element={<SignIn />} />
               <Route path="/auth/sign-up" element={<SignUp />} />
               <Route path="/auth/verification" element={<Verification />} />
-              <Route path="/dashboard" element={<Dashboard />} />
-              <Route path="/post-task" element={<PostTask />} />
-              <Route path="/my-tasks" element={<MyTasks />} />
-              <Route path="/task/:id" element={<TaskDetail />} />
-              <Route path="/completed-tasks" element={<CompletedTasks />} />
-              <Route path="/profile" element={<ProfilePage />} />
-              <Route path="/wallet" element={<Wallet />} />
+              
+              {/* Protected Routes */}
+              <Route path="/dashboard" element={
+                <ProtectedRoute>
+                  <Dashboard />
+                </ProtectedRoute>
+              } />
+              <Route path="/post-task" element={
+                <ProtectedRoute>
+                  <PostTask />
+                </ProtectedRoute>
+              } />
+              <Route path="/my-tasks" element={
+                <ProtectedRoute>
+                  <MyTasks />
+                </ProtectedRoute>
+              } />
+              <Route path="/task/:id" element={
+                <ProtectedRoute>
+                  <TaskDetail />
+                </ProtectedRoute>
+              } />
+              <Route path="/completed-tasks" element={
+                <ProtectedRoute>
+                  <CompletedTasks />
+                </ProtectedRoute>
+              } />
+              <Route path="/profile" element={
+                <ProtectedRoute>
+                  <ProfilePage />
+                </ProtectedRoute>
+              } />
+              <Route path="/wallet" element={
+                <ProtectedRoute>
+                  <Wallet />
+                </ProtectedRoute>
+              } />
+              
               <Route path="*" element={<NotFound />} />
             </Routes>
           </BrowserRouter>

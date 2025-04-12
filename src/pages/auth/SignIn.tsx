@@ -17,6 +17,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Loader2 } from 'lucide-react';
+import { toast } from 'sonner';
 
 const formSchema = z.object({
   email: z.string()
@@ -43,10 +44,13 @@ const SignIn = () => {
   const onSubmit = async (data: FormData) => {
     try {
       setIsLoading(true);
+      toast.loading('Signing in...', { id: 'signin' });
       await signIn(data.email, data.password);
+      toast.success('Successfully signed in', { id: 'signin' });
       navigate('/dashboard');
-    } catch (error) {
+    } catch (error: any) {
       console.error('Sign in error:', error);
+      toast.error(error.message || 'Failed to sign in', { id: 'signin' });
     } finally {
       setIsLoading(false);
     }
@@ -104,7 +108,7 @@ const SignIn = () => {
               <Button type="submit" className="w-full bg-hustlr-green hover:bg-hustlr-darkgreen" disabled={isLoading}>
                 {isLoading ? (
                   <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Please wait
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Signing in...
                   </>
                 ) : (
                   'Sign In'
@@ -119,12 +123,15 @@ const SignIn = () => {
             </Link>
           </div>
         </CardContent>
-        <CardFooter className="flex justify-center">
+        <CardFooter className="flex flex-col gap-2">
           <p className="text-sm text-gray-600">
             Don't have an account?{' '}
             <Link to="/auth/sign-up" className="text-hustlr-green font-semibold hover:underline">
               Sign up
             </Link>
+          </p>
+          <p className="text-xs text-gray-500 text-center mt-2">
+            Note: If verification is enabled in Supabase, you'll need to verify your email before logging in.
           </p>
         </CardFooter>
       </Card>
